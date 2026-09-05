@@ -8,7 +8,17 @@
       "val": 25,
       "color": "var(--arcand-primary)",
       "desc": "Core Arcand Centre Team Member (ORCID: 0000-0002-3529-9247)",
-      "orcid": "0000-0002-3529-9247"
+      "orcid": "0000-0002-3529-9247",
+      "about": null,
+      "employments": [
+        {
+          "role": null,
+          "organization": "Northern Ontario School of Medicine",
+          "startDate": null,
+          "endDate": "Present"
+        }
+      ],
+      "fundings": []
     },
     {
       "id": "0000-0001-5767-3781",
@@ -18,7 +28,29 @@
       "val": 25,
       "color": "var(--arcand-primary)",
       "desc": "Core Arcand Centre Team Member (ORCID: 0000-0001-5767-3781)",
-      "orcid": "0000-0001-5767-3781"
+      "orcid": "0000-0001-5767-3781",
+      "about": null,
+      "employments": [
+        {
+          "role": "Clinician Lead, Social Accountability",
+          "organization": "Health Sciences North",
+          "startDate": "2022",
+          "endDate": "Present"
+        },
+        {
+          "role": "Physician Lead for Policy, Advocacy and Leadership",
+          "organization": "Dr. Gilles Arcand Centre for Health Equity",
+          "startDate": "2022",
+          "endDate": "Present"
+        },
+        {
+          "role": "Associate Professor",
+          "organization": "Northern Ontario School of Medicine University",
+          "startDate": "2012",
+          "endDate": "Present"
+        }
+      ],
+      "fundings": []
     },
     {
       "id": "0009-0005-3887-033X",
@@ -28,7 +60,17 @@
       "val": 25,
       "color": "var(--arcand-primary)",
       "desc": "Core Arcand Centre Team Member (ORCID: 0009-0005-3887-033X)",
-      "orcid": "0009-0005-3887-033X"
+      "orcid": "0009-0005-3887-033X",
+      "about": null,
+      "employments": [
+        {
+          "role": "Associate Vice President, Equity and Inclusion",
+          "organization": "NOSM University",
+          "startDate": null,
+          "endDate": "Present"
+        }
+      ],
+      "fundings": []
     },
     {
       "id": "0000-0001-9958-4824",
@@ -38,7 +80,17 @@
       "val": 25,
       "color": "var(--arcand-primary)",
       "desc": "Core Arcand Centre Team Member (ORCID: 0000-0001-9958-4824)",
-      "orcid": "0000-0001-9958-4824"
+      "orcid": "0000-0001-9958-4824",
+      "about": null,
+      "employments": [
+        {
+          "role": "Associate Scientist",
+          "organization": "Thunder Bay Regional Research Institute",
+          "startDate": null,
+          "endDate": "Present"
+        }
+      ],
+      "fundings": []
     },
     {
       "id": "0000-0003-4319-5728",
@@ -48,7 +100,109 @@
       "val": 25,
       "color": "var(--arcand-primary)",
       "desc": "Core Arcand Centre Team Member (ORCID: 0000-0003-4319-5728)",
-      "orcid": "0000-0003-4319-5728"
+      "orcid": "0000-0003-4319-5728",
+      "about": "Kirsty Bourret is a Registered Midwife, health systems researcher, and Associate Researcher with the Health Systems and Equity program at NOSM University and the Thunder Bay Regional Health Research Institute. Her work focuses on reproductive justice, maternal-child health equity, and learning health systems in Northern and remote contexts. She is developing a program of research in Northern Ontario Reproductive Health Learning Health Systems (NOLHS) to advance equity-informed, systems-embedded approaches to care. Kirsty leads and collaborates on applied research with communities, health system actors, and policy leaders. She serves on the Global Programs Advisory Council at the Canadian Association of Midwives and chairs the Ontario Midwifery Research Group",
+      "employments": [
+        {
+          "role": "Research Associate",
+          "organization": "NOSM University",
+          "startDate": "2025",
+          "endDate": "Present"
+        },
+        {
+          "role": "Research Associate",
+          "organization": "Thunder Bay Regional Research Institute",
+          "startDate": "2025",
+          "endDate": "Present"
+        },
+        {
+          "role": "External Adjunct Faculty ",
+          "organization": "Lakehead University",
+          "startDate": "2024",
+          "endDate": "Present"
+        },
+        {
+          "role": "Adjunct researcher ",
+          "organization": "McMaster University",
+          "startDate": "2021",
+          "endDate": "Present"
+        },
+        {
+          "role": "Research Affiliate ",
+          "organization": "Karolinska Institutet",
+          "startDate": "2024",
+          "endDate": "2025"
+        },
+        {
+          "role": "Post doctoral fellow",
+          "organization": "Karolinska Institutet",
+          "startDate": "2022",
+          "endDate": "2025"
+        },
+        {
+          "role": "Post-doctoral fellow",
+          "organization": "McMaster Midwifery Research Centre",
+          "startDate": "2018",
+          "endDate": "2022"
+        },
+        {
+          "role": "Lecturer",
+          "organization": "Laurentian University",
+          "startDate": "2007",
+          "endDate": "2021"
+        }
+      ],
+      "fundings": [
+        {
+          "title": "A health systems approach to evaluating the impact of midwifery-led person-centered comprehensive abortion care in the Democratic Republic of Congo: A mixed method and quasi experimental evaluation\".",
+          "type": "salary-award",
+          "organization": "Swedish Research Council for Health Working Life and Welfare",
+          "year": "2021",
+          "amount": null
+        },
+        {
+          "title": "Evaluating Skill Transfer Between Canadian and Global South Midwifery Associations",
+          "type": "grant",
+          "organization": "Mitacs",
+          "year": null,
+          "amount": null
+        },
+        {
+          "title": "Building sustainable midwifery associations: Application of an evidence-informed framework for midwifery professional association strengthening",
+          "type": "grant",
+          "organization": "Mitacs",
+          "year": null,
+          "amount": null
+        },
+        {
+          "title": "A health systems approach to evaluating the impact of midwifery-led person-centered comprehensive abortion care in the Democratic Republic of Congo: A mixed method and quasi experimental evaluation",
+          "type": "grant",
+          "organization": "Swedish Research Council for Health Working Life and Welfare",
+          "year": "2021",
+          "amount": null
+        },
+        {
+          "title": "Empowered midwives for universal health coverage of comprehensive sexual and reproductive health care services in DRC",
+          "type": "grant",
+          "organization": "Swedish Research Council",
+          "year": "2022",
+          "amount": null
+        },
+        {
+          "title": "Mapping of Midwifery Care in Northern Ontario: an intersectional mixed methods study, AOM Project Midwifery Research Grant.",
+          "type": "grant",
+          "organization": "Association of Ontario Midwives",
+          "year": "2024",
+          "amount": null
+        },
+        {
+          "title": "Exploring the Barriers and Facilitators of Midwives and Midwifery Students in Ontario Living with Attentiondeficit/ hyperactivity Disorder (ADHD): A Qualitative Study",
+          "type": "grant",
+          "organization": "Association of Ontario Midwives",
+          "year": "2025",
+          "amount": null
+        }
+      ]
     },
     {
       "id": "frances kilbertus",

@@ -54,7 +54,7 @@ type GraphData = {
 
 interface MapProps {
   centerPerson: string;
-  onNodeSelect?: (node: GraphNode) => void;
+  onNodeSelect?: (node: GraphNode, sharedWorks?: any[]) => void;
   initialDepth?: number;
 }
 
@@ -152,6 +152,101 @@ function normalizeGraphData(data: GraphData): GraphData {
 // No React hook is needed here.
 const normalizedGraphData =
   normalizeGraphData(graphData);
+
+/**
+ * Escape text before it is injected into the
+ * browser's floating tooltip (linkLabel renders
+ * as innerHTML), so titles with special
+ * characters display correctly and safely.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * A link can represent more than one shared
+ * work between the same two people. Build a
+ * single display string:
+ *
+ * One work:
+ * "Title (2026)"
+ *
+ * Multiple works:
+ * "Title A (2026) + 2 more"
+ */
+function getLinkTitleLabel(
+  link: GraphLink
+): string {
+  const works = link.works ?? [];
+
+  if (works.length === 0) {
+    return "";
+  }
+
+  const first = works[0];
+  const firstTitle =
+    first.title ?? "Untitled work";
+  const firstLabel = first.year
+    ? `${firstTitle} (${first.year})`
+    : firstTitle;
+
+  if (works.length === 1) {
+    return firstLabel;
+  }
+
+  return `${firstLabel} + ${works.length - 1} more`;
+}
+
+/**
+ * Full HTML tooltip content for a link,
+ * listing every shared work when there is
+ * more than one.
+ */
+function getLinkTooltipHtml(
+  link: GraphLink
+): string {
+  const works = link.works ?? [];
+
+  if (works.length === 0) {
+    return "";
+  }
+
+  if (works.length === 1) {
+    const work = works[0];
+    const title = escapeHtml(
+      work.title ?? "Untitled work"
+    );
+
+    const meta = [work.journal, work.year]
+      .filter(Boolean)
+      .join(" · ");
+
+    return meta
+      ? `${title}<br/><span style="opacity:0.75">${escapeHtml(
+          meta
+        )}</span>`
+      : title;
+  }
+
+  return works
+    .map((work, index) => {
+      const title = escapeHtml(
+        work.title ?? "Untitled work"
+      );
+
+      return `${index + 1}. ${title}${
+        work.year
+          ? ` (${escapeHtml(work.year)})`
+          : ""
+      }`;
+    })
+    .join("<br/>");
+}
 
 export default function CollaborationMap({
   centerPerson,
@@ -292,6 +387,39 @@ export default function CollaborationMap({
           visibleNodeIds.has(node.id)
       );
 
+    /**
+     * Decide which edges belong in the ego
+     * network, based on each endpoint's
+     * distance from the center person.
+     *
+     * Just being "in range" (distance <=
+     * maxDepth) is not enough. Without this,
+     * every edge between two visible people
+     * gets drawn, including edges that have
+     * nothing to do with the center person
+     * (e.g. B <-> C when neither is A), which
+     * is what made the map feel crowded even
+     * at depth 1.
+     *
+     * Rule:
+     * - Always keep an edge that touches the
+     *   center person directly (distance 0),
+     *   however far the other end is. This is
+     *   what surfaces a direct A <-> C link
+     *   even when C is also reached through B.
+     * - Keep an edge that connects two
+     *   adjacent layers (distance difference
+     *   of 1), since that is a genuine step
+     *   outward in the collaboration chain,
+     *   e.g. B -> C or C -> D.
+     * - Drop an edge between two people at the
+     *   SAME distance from the center (e.g.
+     *   B <-> C when both are direct
+     *   collaborators of A, but not of each
+     *   other through A). Neither person is
+     *   the center, so this edge is "sideways"
+     *   rather than part of the ego network.
+     */
     const links =
       normalizedGraphData.links.filter(
         (link) => {
@@ -305,9 +433,30 @@ export default function CollaborationMap({
               ? link.target
               : link.target.id;
 
+          const sourceDepth =
+            distances.get(source);
+
+          const targetDepth =
+            distances.get(target);
+
+          if (
+            sourceDepth === undefined ||
+            targetDepth === undefined
+          ) {
+            return false;
+          }
+
+          if (
+            sourceDepth === 0 ||
+            targetDepth === 0
+          ) {
+            return true;
+          }
+
           return (
-            visibleNodeIds.has(source) &&
-            visibleNodeIds.has(target)
+            Math.abs(
+              sourceDepth - targetDepth
+            ) === 1
           );
         }
       );
@@ -421,6 +570,111 @@ export default function CollaborationMap({
 
           linkWidth={1.6}
 
+          /**
+           * Hover tooltip showing which
+           * collaboration(s) this edge
+           * represents.
+           */
+          linkLabel={(link) =>
+            getLinkTooltipHtml(
+              link as GraphLink
+            )
+          }
+
+          /**
+           * Draw the collaboration title
+           * along the edge itself once
+           * zoomed in enough to read it.
+           */
+          linkCanvasObjectMode={() => "after"}
+
+          linkCanvasObject={(
+            link,
+            ctx,
+            globalScale
+          ) => {
+            if (globalScale < 2.2) {
+              return;
+            }
+
+            const source =
+              link.source as GraphNode;
+            const target =
+              link.target as GraphNode;
+
+            if (
+              typeof source !== "object" ||
+              typeof target !== "object" ||
+              source.x === undefined ||
+              source.y === undefined ||
+              target.x === undefined ||
+              target.y === undefined
+            ) {
+              return;
+            }
+
+            const label = getLinkTitleLabel(
+              link as GraphLink
+            );
+
+            if (!label) {
+              return;
+            }
+
+            const midX =
+              (source.x + target.x) / 2;
+
+            const midY =
+              (source.y + target.y) / 2;
+
+            const fontSize = Math.max(
+              8,
+              11 / globalScale
+            );
+
+            ctx.font = `${fontSize}px Sans-Serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            // Keep long titles from
+            // overwhelming the canvas.
+            const maxChars = 42;
+
+            const displayLabel =
+              label.length > maxChars
+                ? `${label.slice(
+                    0,
+                    maxChars - 1
+                  )}…`
+                : label;
+
+            const textWidth = ctx.measureText(
+              displayLabel
+            ).width;
+
+            const padding = 2 / globalScale;
+
+            // Background so the title stays
+            // readable over links and nodes.
+            ctx.fillStyle =
+              "rgba(255, 255, 255, 0.85)";
+
+            ctx.fillRect(
+              midX - textWidth / 2 - padding,
+              midY - fontSize / 2 - padding,
+              textWidth + padding * 2,
+              fontSize + padding * 2
+            );
+
+            ctx.fillStyle = "#475569";
+
+            ctx.fillText(
+              displayLabel,
+              midX,
+              midY
+            );
+          }}
+
           d3VelocityDecay={0.22}
           d3AlphaDecay={0.025}
 
@@ -428,7 +682,28 @@ export default function CollaborationMap({
           warmupTicks={40}
 
           onNodeClick={(node) => {
-            onNodeSelect?.(node);
+            // Find the center person's normalized node
+            const centerNode = normalizedGraphData.nodes.find(
+              (n) => n.name.trim().toLowerCase() === centerPerson.trim().toLowerCase()
+            );
+
+            let sharedWorks: any[] = [];
+            
+            if (centerNode) {
+              // Locate all links directly connecting the center person and the clicked node
+              const connectingLinks = normalizedGraphData.links.filter((l) => {
+                const sourceId = typeof l.source === "string" ? l.source : (l.source as GraphNode).id;
+                const targetId = typeof l.target === "string" ? l.target : (l.target as GraphNode).id;
+
+                return (sourceId === centerNode.id && targetId === node.id) ||
+                       (sourceId === node.id && targetId === centerNode.id);
+              });
+
+              // Flatten the works arrays from all connecting links
+              sharedWorks = connectingLinks.flatMap((l) => l.works || []);
+            }
+
+            onNodeSelect?.(node, sharedWorks);
           }}
 
           onEngineStop={() => {
