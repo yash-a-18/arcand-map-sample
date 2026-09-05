@@ -1,26 +1,17 @@
 @import "tailwindcss";
 
 :root {
+  /* Arcand Centre Brand Colors (Placeholders to match a modern health theme) */
+  --arcand-primary: #5A4574; /* Deep Teal/Blue */
+  --arcand-primary-hover: #00363a;
+  --arcand-accent: #dca816; /* Warm Gold/Yellow */
+  --arcand-accent: 322A60;
+  
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #D1CBDA;
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--background);
 }

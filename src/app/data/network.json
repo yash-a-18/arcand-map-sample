@@ -1,0 +1,45 @@
+{
+  "nodes": [
+    {
+      "id": "Dr. Erin Cameron",
+      "role": "Director",
+      "group": 1,
+      "val": 25,
+      "color": "var(--arcand-primary)",
+      "desc": "Core Arcand Centre Team Member (ORCID: 0000-0002-3529-9247)"
+    },
+    {
+      "id": "Alex Anawati",
+      "role": "Team Member",
+      "group": 1,
+      "val": 25,
+      "color": "var(--arcand-primary)",
+      "desc": "Core Arcand Centre Team Member (ORCID: 0000-0001-5767-3781)"
+    },
+    {
+      "id": "Joseph LeBlanc",
+      "role": "Team Member",
+      "group": 1,
+      "val": 25,
+      "color": "var(--arcand-primary)",
+      "desc": "Core Arcand Centre Team Member (ORCID: 0009-0005-3887-033X)"
+    },
+    {
+      "id": "Brianne Wood",
+      "role": "Team Member",
+      "group": 1,
+      "val": 25,
+      "color": "var(--arcand-primary)",
+      "desc": "Core Arcand Centre Team Member (ORCID: 0000-0001-9958-4824)"
+    },
+    {
+      "id": "Kristy Bourret",
+      "role": "Team Member",
+      "group": 1,
+      "val": 25,
+      "color": "var(--arcand-primary)",
+      "desc": "Core Arcand Centre Team Member (ORCID: 0000-0003-4319-5728)"
+    }
+  ],
+  "links": []
+}

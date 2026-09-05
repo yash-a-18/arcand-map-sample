@@ -1,69 +1,115 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+import CollaborationMap from "./components/CollaborationMap";
 
-export default function Home() {
+const TEAM_MEMBERS = [
+  { id: "Dr. Erin Cameron", title: "Full Professor & Director", desc: "Dr. Gilles Arcand Centre for Health Equity" },
+  { id: "Alex Anawati", title: "Team Member", desc: "Arcand Centre Network" },
+  { id: "Joseph LeBlanc", title: "Team Member", desc: "Arcand Centre Network" },
+  { id: "Brianne Wood", title: "Team Member", desc: "Arcand Centre Network" },
+  { id: "Kristy Bourret", title: "Team Member", desc: "Arcand Centre Network" }
+];
+
+export default function ProfilePage() {
+  const [activeTab, setActiveTab] = useState("NETWORK");
+  const [selectedNode, setSelectedNode] = useState<any>(null); // Track clicked node
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+      <header className="bg-[var(--arcand-primary)] text-white p-5 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-semibold tracking-wide">
+            Dr. Gilles Arcand Centre <span className="text-[var(--arcand-accent)]">|</span> Health Equity
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-10 mt-6">
+        
+        {/* Left Sidebar: Dynamic Context Panel */}
+        <div className="col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col h-fit transition-all duration-300">
+          {!selectedNode ? (
+            <div className="space-y-6 animate-fade-in">
+              <div className="w-48 h-48 bg-gray-100 rounded-full mx-auto flex items-center justify-center text-gray-400 border-4 border-[var(--arcand-primary)]">
+                [Headshot Placeholder]
+              </div>
+              <div className="text-center md:text-left">
+                <h2 className="text-3xl font-bold text-[var(--arcand-primary)]">Dr. Erin Cameron</h2>
+                <p className="text-lg font-medium text-gray-700 mt-2">Full Professor</p>
+                <p className="text-sm text-gray-600 mt-1">Northern Ontario School of Medicine University (NOSM U)</p>
+                <p className="text-sm text-gray-600 mt-2 italic border-l-4 border-[var(--arcand-accent)] pl-3">
+                  Director, Dr. Gilles Arcand Centre for Health Equity
+                </p>
+              </div>
+              <button 
+                onClick={() => setActiveTab("NETWORK")}
+                className="w-full bg-(--arcand-primary) hover:bg-(--arcand-primary-hover) text-white font-bold py-3 px-4 rounded-lg mt-6 shadow transition duration-200"
+              >
+                Launch Collaboration Map  
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6 animate-fade-in">
+              <button 
+                onClick={() => setSelectedNode(null)}
+                className="text-sm font-semibold text-gray-500 hover:text-[var(--arcand-primary)] mb-4 flex items-center cursor-pointer"
+              >
+                ← Back to Primary Profile
+              </button>
+              <div 
+                className="w-24 h-24 rounded-full mx-auto md:mx-0 shadow-inner" 
+                style={{ backgroundColor: selectedNode.color || "#ccc" }}
+              />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedNode.id}</h2>
+                <p className="text-sm font-bold text-[var(--arcand-primary)] uppercase tracking-wide mt-2">{selectedNode.role}</p>
+                <p className="text-base text-gray-700 mt-4 leading-relaxed">{selectedNode.desc}</p>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* Right Content Area */}
+        <div className="col-span-1 md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <nav className="flex space-x-8 border-b border-gray-200 pb-3 mb-6 text-sm font-bold tracking-wider">
+            {["ABOUT", "PUBLICATIONS", "GRANTS", "NETWORK"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 transition ${
+                  activeTab === tab
+                    ? "text-[var(--arcand-primary)] border-b-4 border-[var(--arcand-accent)]"
+                    : "text-gray-400 hover:text-gray-700"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+
+          <div className="min-h-[500px]">
+            {activeTab === "NETWORK" && (
+              <div className="h-[600px] border border-gray-200 rounded-xl shadow-sm relative">
+                <CollaborationMap onNodeSelect={setSelectedNode} />
+              </div>
+            )}
+            
+            {/* Placeholder logic for other tabs remains the same... */}
+            {activeTab === "ABOUT" && (
+              <div className="space-y-8 text-gray-600">
+                <p>
+                  Dr. Erin Cameron is a Full Professor at the Northern Ontario School of Medicine University (NOSM U) and Director of the Dr. Gilles Arcand Centre for Health Equity. Under her leadership, the Arcand Centre has grown and is now home to 11 research networks advancing social accountability and health equity research. Her academic background includes a PhD in Educational Studies from Lakehead University, an MA in Intercultural and International Communication from Royal Roads University, and a BA from the University of Manitoba.
+                </p>
+              </div>
+            )}
+            {(activeTab === "PUBLICATIONS" || activeTab === "GRANTS") && (
+              <div className="text-gray-400 italic text-center mt-20">
+                Level 1 Capacity data for {activeTab.toLowerCase()} will populate here.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
