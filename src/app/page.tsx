@@ -6,16 +6,16 @@ import AboutProfile from "./components/AboutProfile";
 import FundingList from "./components/FundingList";
 
 const TEAM_MEMBERS = [
-  { id: "0000-0002-3529-9247", name: "Dr. Erin Cameron", title: "Full Professor & Director", desc: "Dr. Gilles Arcand Centre for Health Equity" },
-  { id: "0000-0001-5767-3781", name: "Dr. Alex Anawati", title: "Physician Lead for Policy, Advocacy and Leadership", desc: "Dr. Gilles Arcand Centre for Health Equity" },
-  { id: "0009-0005-3887-033X", name: "Dr. Joseph LeBlanc", title: "Team Member", desc: "Dr. Gilles Arcand Centre for Health Equity" },
-  { id: "0000-0001-9958-4824", name: "Dr. Brianne Wood", title: "Team Member", desc: "Dr. Gilles Arcand Centre for Health Equity" },
-  { id: "0000-0003-4319-5728", name: "Dr. Kristy Bourret", title: "Research Associate", desc: "Dr. Gilles Arcand Centre for Health Equity" }
+  { id: "0000-0002-3529-9247", name: "Dr. Erin Cameron", title: "Full Professor & Director", desc: "Dr. Gilles Arcand Centre for Health Equity", src: "/Erin_headshot.jpg" },
+  { id: "0000-0001-5767-3781", name: "Alex Anawati", title: "Physician Lead for Policy, Advocacy and Leadership", desc: "Dr. Gilles Arcand Centre for Health Equity", src: "/Alex_headshot.png" },
+  { id: "0009-0005-3887-033X", name: "Joseph LeBlanc", title: "Team Member", desc: "Dr. Gilles Arcand Centre for Health Equity", src: "/Joseph_headshot.jpg" },
+  { id: "0000-0001-9958-4824", name: "Brianne Wood", title: "Team Member", desc: "Dr. Gilles Arcand Centre for Health Equity", src: "/Brianne_headshot.jpg" },
+  { id: "0000-0003-4319-5728", name: "Kirsty Bourret", title: "Research Associate", desc: "Dr. Gilles Arcand Centre for Health Equity", src: "/Kristy_headshot.jpeg" }
 ];
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("ABOUT");
-  const [activeProfile, setActiveProfile] = useState(TEAM_MEMBERS[1]);
+  const [activeProfile, setActiveProfile] = useState(TEAM_MEMBERS[0]);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [sharedWorks, setSharedWorks] = useState<any[]>([]);
 
@@ -34,8 +34,12 @@ export default function ProfilePage() {
         {/* Left Sidebar: Team Directory */}
         <div className="col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col h-fit transition-all duration-300">
             <div className="space-y-6 animate-fade-in">
-              <div className="w-48 h-48 bg-gray-100 rounded-full mx-auto flex items-center justify-center text-gray-400 border-4 border-(--arcand-primary)">
-                [Headshot Placeholder]
+              <div className="w-48 h-48 bg-gray-100 rounded-full mx-auto flex items-center justify-center border-4 border-(--arcand-primary) overflow-hidden">
+                <img
+                  src={activeProfile.src}
+                  alt={activeProfile.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="text-center md:text-left">
                 <h2 className="text-3xl font-bold text-(--arcand-primary)">{activeProfile.name}</h2>

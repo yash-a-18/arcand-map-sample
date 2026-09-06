@@ -1,13 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import generatedGraphData from "../data/network.json";
 
 const ForceGraph2D = dynamic(
@@ -24,13 +18,37 @@ export type GraphNode = {
   color?: string;
   desc?: string;
   orcid?: string;
-
+  teamMember?: boolean;
   x?: number;
   y?: number;
   vx?: number;
   vy?: number;
   fx?: number;
   fy?: number;
+};
+
+export type WorkAuthor = {
+  id: string;
+  name: string;
+  orcid: string | null;
+  teamMember: boolean;
+};
+
+export type WorkOwner = {
+  id: string;
+  name: string;
+  orcid: string;
+};
+
+export type Work = {
+  putCode: number;
+  owner: WorkOwner;
+  title: string;
+  year: string | null;
+  journal: string | null;
+  doi: string | null;
+  url: string | null;
+  authors: WorkAuthor[];
 };
 
 export type GraphLink = {
@@ -50,245 +68,131 @@ export type GraphLink = {
 type GraphData = {
   nodes: GraphNode[];
   links: GraphLink[];
+  works: Work[];
 };
 
 interface MapProps {
   centerPerson: string;
-  onNodeSelect?: (node: GraphNode, sharedWorks?: any[]) => void;
+  onNodeSelect?: (node: GraphNode, sharedWorks?: Work[]) => void;
   initialDepth?: number;
 }
 
 const graphData = generatedGraphData as GraphData;
+console.log(
+  "========== COLLABORATION MAP DEBUG =========="
+);
+
+console.log(
+  "TOTAL NODES:",
+  graphData.nodes.length
+);
+
+console.log(
+  "TOTAL LINKS:",
+  graphData.links.length
+);
+
+console.log(
+  "=============================================="
+);
 
 /**
- * Convert the generated network data into a graph where
- * every link uses the node's ORCID/id.
+ * Find an existing node only.
  *
- * network.json:
- *
- * node:
- * {
- *   id: "0000-0002-3529-9247",
- *   name: "Dr. Erin Cameron"
- * }
- *
- * link:
- * {
- *   source: "frances kilbertus",
- *   target: "sarah newbery"
- * }
- *
- * becomes:
- *
- * source: "ORCID_OF_FRANCES"
- * target: "ORCID_OF_SARAH"
+ * This function never creates a node and never changes an identity.
  */
-function normalizeGraphData(data: GraphData): GraphData {
-  const nameToId = new Map<string, string>();
-  const idSet = new Set<string>();
-
-  for (const node of data.nodes) {
-    idSet.add(node.id);
-
-    if (node.name) {
-      nameToId.set(
-        node.name.trim().toLowerCase(),
-        node.id
-      );
-    }
-  }
-
-  const resolvePersonId = (
-    value: string | GraphNode
-  ): string | null => {
-    if (typeof value !== "string") {
-      return value.id;
-    }
-
-    // Already an ORCID / node ID.
-    if (idSet.has(value)) {
-      return value;
-    }
-
-    // Link endpoint is a person's name.
-    const normalizedName = value
-      .trim()
-      .toLowerCase();
-
-    return nameToId.get(normalizedName) ?? null;
-  };
-
-  const normalizedLinks: GraphLink[] = [];
-
-  for (const link of data.links) {
-    const source = resolvePersonId(link.source);
-    const target = resolvePersonId(link.target);
-
-    if (!source || !target) {
-      console.warn(
-        `Could not resolve network link:`,
-        link.source,
-        "→",
-        link.target
-      );
-
-      continue;
-    }
-
-    normalizedLinks.push({
-      ...link,
-      source,
-      target,
-    });
-  }
-
-  return {
-    nodes: data.nodes,
-    links: normalizedLinks,
-  };
-}
-
-// Normalize ONCE when the module loads.
-// No React hook is needed here.
-const normalizedGraphData =
-  normalizeGraphData(graphData);
-
-/**
- * Escape text before it is injected into the
- * browser's floating tooltip (linkLabel renders
- * as innerHTML), so titles with special
- * characters display correctly and safely.
- */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function findNode(
+  nodes: GraphNode[],
+  person: string
+): GraphNode | undefined {
+  return nodes.find(
+    (node) =>
+      node.id === person ||
+      node.orcid === person ||
+      node.name === person
+  );
 }
 
 /**
- * A link can represent more than one shared
- * work between the same two people. Build a
- * single display string:
+ * Get a string ID from a link endpoint.
  *
- * One work:
- * "Title (2026)"
- *
- * Multiple works:
- * "Title A (2026) + 2 more"
+ * react-force-graph can turn endpoints into GraphNode objects,
+ * so we support both forms.
  */
-function getLinkTitleLabel(
-  link: GraphLink
-): string {
-  const works = link.works ?? [];
-
-  if (works.length === 0) {
-    return "";
+function getEndpointId(
+  endpoint: string | GraphNode
+): string | undefined {
+  if (typeof endpoint === "string") {
+    return endpoint;
   }
 
-  const first = works[0];
-  const firstTitle =
-    first.title ?? "Untitled work";
-  const firstLabel = first.year
-    ? `${firstTitle} (${first.year})`
-    : firstTitle;
-
-  if (works.length === 1) {
-    return firstLabel;
-  }
-
-  return `${firstLabel} + ${works.length - 1} more`;
+  return endpoint?.id;
 }
 
-/**
- * Full HTML tooltip content for a link,
- * listing every shared work when there is
- * more than one.
- */
-function getLinkTooltipHtml(
-  link: GraphLink
-): string {
-  const works = link.works ?? [];
-
-  if (works.length === 0) {
-    return "";
-  }
-
-  if (works.length === 1) {
-    const work = works[0];
-    const title = escapeHtml(
-      work.title ?? "Untitled work"
-    );
-
-    const meta = [work.journal, work.year]
-      .filter(Boolean)
-      .join(" · ");
-
-    return meta
-      ? `${title}<br/><span style="opacity:0.75">${escapeHtml(
-          meta
-        )}</span>`
-      : title;
-  }
-
-  return works
-    .map((work, index) => {
-      const title = escapeHtml(
-        work.title ?? "Untitled work"
-      );
-
-      return `${index + 1}. ${title}${
-        work.year
-          ? ` (${escapeHtml(work.year)})`
-          : ""
-      }`;
-    })
-    .join("<br/>");
-}
 
 export default function CollaborationMap({
   centerPerson,
   onNodeSelect,
   initialDepth = 1,
 }: MapProps) {
-  const containerRef =
-    useRef<HTMLDivElement>(null);
+  console.log("CollaborationMap rendered");
+  useEffect(() => {
+  console.log("🟢 MAP MOUNTED", centerPerson);
 
-  const fgRef = useRef<any>(null);
+  return () => {
+    console.log("🔴 MAP UNMOUNTED", centerPerson);
+  };
+}, []);
+  const graphRef = useRef<any>(null);
+  useEffect(() => {
+  setTimeout(() => {
+    const internalNodes = graphRef.current?.graphData?.().nodes ?? [];
 
-  const [dimensions, setDimensions] = useState({
-    width: 800,
-    height: 600,
-  });
+    console.log("INTERNAL NODE COUNT:", internalNodes.length);
+  }, 1000);
+}, []);
 
-  const [maxDepth, setMaxDepth] =
-    useState(initialDepth);
+  const [depth, setDepth] = useState(initialDepth);
 
   /**
-   * Build the visible graph based on the
-   * selected network depth.
+   * ------------------------------------------------------------
+   * 1. FIND THE ACTIVE PERSON
+   * ------------------------------------------------------------
    *
-   * Depth 1:
-   * Erin → direct collaborators
+   * We only use nodes to find the person's canonical ID.
    *
-   * Depth 2:
-   * Erin → collaborators → their collaborators
-   *
-   * Depth 3:
-   * One additional layer.
+   * The actual graph is built entirely from links.
    */
-  const visibleGraph = useMemo<GraphData>(() => {
-    const selectedPerson = normalizedGraphData.nodes.find(
-      (node) =>
-        node.name.trim().toLowerCase() ===
-        centerPerson.trim().toLowerCase()
+  const activePerson = useMemo(() => {
+    return findNode(
+      graphData.nodes,
+      centerPerson
     );
+  }, [centerPerson]);
 
-    if (!selectedPerson) {
-      console.error(
-        `Could not find "${centerPerson}" in network.json`
+  /**
+   * ------------------------------------------------------------
+   * 2. BUILD GRAPH FROM LINKS
+   * ------------------------------------------------------------
+   *
+   * This is the important part.
+   *
+   * We start with the active person's ID.
+   *
+   * Then we look ONLY at graphData.links to discover:
+   *
+   *     active person -> collaborator
+   *
+   * No names are normalized.
+   * No aliases are invented.
+   * No nodes are created.
+   *
+   * The fetcher has already decided who each endpoint represents.
+   */
+  const visibleGraph = useMemo(() => {
+    if (!activePerson) {
+      console.warn(
+        `[CollaborationMap] Active person "${centerPerson}" was not found in network.json`
       );
 
       return {
@@ -297,27 +201,20 @@ export default function CollaborationMap({
       };
     }
 
-    const rootId = selectedPerson.id;
+    const activeId = activePerson.id;
 
-    const adjacency =
-      new Map<string, Set<string>>();
+    /**
+     * Build adjacency directly from links.
+     */
+    const adjacency = new Map<string, Set<string>>();
 
-    // Create an adjacency set for every node.
-    for (const node of normalizedGraphData.nodes) {
-      adjacency.set(node.id, new Set());
-    }
+    for (const link of graphData.links) {
+      const source = getEndpointId(link.source);
+      const target = getEndpointId(link.target);
 
-    // Build an undirected graph.
-    for (const link of normalizedGraphData.links) {
-      const source =
-        typeof link.source === "string"
-          ? link.source
-          : link.source.id;
-
-      const target =
-        typeof link.target === "string"
-          ? link.target
-          : link.target.id;
+      if (!source || !target) {
+        continue;
+      }
 
       if (!adjacency.has(source)) {
         adjacency.set(source, new Set());
@@ -331,495 +228,437 @@ export default function CollaborationMap({
       adjacency.get(target)!.add(source);
     }
 
-    // Safety check.
-    if (!adjacency.has(rootId)) {
-      console.error(
-        `Network root "${rootId}" was not found in normalized network data`
-      );
-
-      return {
-        nodes: [],
-        links: [],
-      };
-    }
-
     /**
-     * Breadth-first search from Erin.
+     * ----------------------------------------------------------
+     * BFS FROM ACTIVE PERSON
+     * ----------------------------------------------------------
+     *
+     * Depth 0 = active person
+     * Depth 1 = direct collaborators
+     * Depth 2 = collaborators of collaborators
+     * etc.
      */
-    const distances =
-      new Map<string, number>();
+    const distances = new Map<string, number>();
+    const queue: string[] = [activeId];
 
-    const queue: string[] = [rootId];
+    distances.set(activeId, 0);
 
-    distances.set(rootId, 0);
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const currentDepth = distances.get(currentId)!;
 
-    let queueIndex = 0;
-
-    while (queueIndex < queue.length) {
-      const current = queue[queueIndex++];
-
-      const currentDepth =
-        distances.get(current)!;
-
-      if (currentDepth >= maxDepth) {
+      if (currentDepth >= depth) {
         continue;
       }
 
-      for (const neighbor of
-        adjacency.get(current) ?? []) {
-        if (!distances.has(neighbor)) {
+      const neighbors =
+        adjacency.get(currentId) ?? new Set<string>();
+
+      for (const neighborId of neighbors) {
+        if (!distances.has(neighborId)) {
           distances.set(
-            neighbor,
+            neighborId,
             currentDepth + 1
           );
 
-          queue.push(neighbor);
+          queue.push(neighborId);
         }
       }
     }
 
-    const visibleNodeIds =
-      new Set(distances.keys());
-
-    const nodes =
-      normalizedGraphData.nodes.filter(
-        (node) =>
-          visibleNodeIds.has(node.id)
-      );
+    /**
+     * These are the ONLY IDs allowed into the graph.
+     */
+    const visibleIds = new Set(
+      distances.keys()
+    );
+    console.log("DEPTH:", depth);
+console.log("ACTIVE PERSON:", activePerson?.name);
+console.log("VISIBLE IDS:", visibleIds.size);
+console.log(
+  "DISTANCES:",
+  Array.from(distances.entries()).reduce(
+    (acc, [, d]) => {
+      acc[d] = (acc[d] || 0) + 1;
+      return acc;
+    },
+    {} as Record<number, number>
+  )
+);
 
     /**
-     * Decide which edges belong in the ego
-     * network, based on each endpoint's
-     * distance from the center person.
+     * ----------------------------------------------------------
+     * 3. GET NODES FROM network.json
+     * ----------------------------------------------------------
      *
-     * Just being "in range" (distance <=
-     * maxDepth) is not enough. Without this,
-     * every edge between two visible people
-     * gets drawn, including edges that have
-     * nothing to do with the center person
-     * (e.g. B <-> C when neither is A), which
-     * is what made the map feel crowded even
-     * at depth 1.
+     * We do NOT create nodes.
      *
-     * Rule:
-     * - Always keep an edge that touches the
-     *   center person directly (distance 0),
-     *   however far the other end is. This is
-     *   what surfaces a direct A <-> C link
-     *   even when C is also reached through B.
-     * - Keep an edge that connects two
-     *   adjacent layers (distance difference
-     *   of 1), since that is a genuine step
-     *   outward in the collaboration chain,
-     *   e.g. B -> C or C -> D.
-     * - Drop an edge between two people at the
-     *   SAME distance from the center (e.g.
-     *   B <-> C when both are direct
-     *   collaborators of A, but not of each
-     *   other through A). Neither person is
-     *   the center, so this edge is "sideways"
-     *   rather than part of the ego network.
+     * We simply look up the IDs discovered through links.
      */
-    const links =
-      normalizedGraphData.links.filter(
-        (link) => {
-          const source =
-            typeof link.source === "string"
-              ? link.source
-              : link.source.id;
+    const nodes = graphData.nodes.filter(
+      (node) => visibleIds.has(node.id)
+    );
 
-          const target =
-            typeof link.target === "string"
-              ? link.target
-              : link.target.id;
+    /**
+     * ----------------------------------------------------------
+     * 4. GET LINKS FROM network.json
+     * ----------------------------------------------------------
+     *
+     * Again, we don't construct relationships.
+     *
+     * We simply select the existing links that belong
+     * to the visible graph.
+     */
+    const links = graphData.links.filter(
+      (link) => {
+        const source = getEndpointId(
+          link.source
+        );
 
-          const sourceDepth =
-            distances.get(source);
+        const target = getEndpointId(
+          link.target
+        );
 
-          const targetDepth =
-            distances.get(target);
-
-          if (
-            sourceDepth === undefined ||
-            targetDepth === undefined
-          ) {
-            return false;
-          }
-
-          if (
-            sourceDepth === 0 ||
-            targetDepth === 0
-          ) {
-            return true;
-          }
-
-          return (
-            Math.abs(
-              sourceDepth - targetDepth
-            ) === 1
-          );
+        if (!source || !target) {
+          return false;
         }
-      );
+
+        return (
+          visibleIds.has(source) &&
+          visibleIds.has(target)
+        );
+      }
+    );
 
     return {
       nodes,
       links,
     };
-  }, [maxDepth]);
+  }, [
+    centerPerson,
+    activePerson,
+    depth,
+  ]);
 
   /**
-   * Keep the graph responsive.
+   * Keep depth synchronized with the parent.
    */
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
-
-    const element = containerRef.current;
-
-    const updateSize = () => {
-      setDimensions({
-        width: element.clientWidth,
-        height: element.clientHeight,
-      });
-    };
-
-    updateSize();
-
-    const observer =
-      new ResizeObserver(updateSize);
-
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, []);
+    setDepth(initialDepth);
+  }, [initialDepth]);
 
   /**
-   * Reheat and refit whenever the graph changes.
+   * Fit graph after changing the active person
+   * or depth.
    */
   useEffect(() => {
-    const graph = fgRef.current;
-
-    if (!graph) {
-      return;
-    }
-
-    graph
-      .d3Force("charge")
-      ?.strength(-650);
-
-    graph
-      .d3Force("link")
-      ?.distance(145);
-
-    graph
-      .d3Force("center")
-      ?.strength(0.45);
-
-    graph.d3ReheatSimulation();
-
     const timer = window.setTimeout(() => {
-      graph.zoomToFit(500, 70);
-    }, 500);
+      graphRef.current?.zoomToFit?.(
+        500,
+        60
+      );
+    }, 150);
 
     return () => {
       window.clearTimeout(timer);
     };
   }, [visibleGraph]);
 
+  /**
+   * ------------------------------------------------------------
+   * SHARED PUBLICATIONS
+   * ------------------------------------------------------------
+   *
+   * This uses top-level works from network.json.
+   *
+   * It does not affect graph identity.
+   */
+  const getSharedWorks = (
+    personAId: string,
+    personBId: string
+  ): Work[] => {
+    return graphData.works.filter(
+      (work) => {
+        const people = new Set<string>();
+
+        /**
+         * Owner
+         */
+        if (work.owner?.id) {
+          people.add(work.owner.id);
+        }
+
+        if (work.owner?.orcid) {
+          people.add(work.owner.orcid);
+        }
+
+        /**
+         * Authors
+         */
+        for (const author of work.authors ?? []) {
+          if (author.id) {
+            people.add(author.id);
+          }
+
+          if (author.orcid) {
+            people.add(author.orcid);
+          }
+        }
+
+        return (
+          people.has(personAId) &&
+          people.has(personBId)
+        );
+      }
+    );
+  };
+
+  /**
+   * Node click.
+   */
+  const handleNodeClick = (
+    node: GraphNode
+  ) => {
+    if (!activePerson) {
+      return;
+    }
+
+    const sharedWorks =
+      getSharedWorks(
+        activePerson.id,
+        node.id
+      );
+
+    onNodeSelect?.(
+      node,
+      sharedWorks
+    );
+  };
+
+console.log(
+  "ALL VISIBLE NODES:",
+  visibleGraph.nodes.map((node) => ({
+    id: node.id,
+    name: node.name,
+    orcid: node.orcid,
+  }))
+);
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full w-full overflow-hidden rounded-xl bg-white"
-    >
-      {dimensions.width > 0 && (
-        <ForceGraph2D<
-          GraphNode,
-          GraphLink
-        >
-          /*
-           * Force a fresh graph instance when
-           * the selected depth changes.
-           */
-          key={`network-depth-${maxDepth}`}
-
-          ref={fgRef}
-
-          width={dimensions.width}
-          height={dimensions.height}
-
-          graphData={visibleGraph}
-
-          nodeRelSize={5}
-
-          nodeVal={(node) =>
-            node.val ?? 1
-          }
-
-          nodeColor={(node) =>
-            node.color ?? "#9ca3af"
-          }
-
-          nodeLabel={(node) =>
-            node.role
-              ? `${node.name} — ${node.role}`
-              : node.name
-          }
-
-          linkColor={() => "#cbd5e1"}
-
-          linkWidth={1.6}
-
-          /**
-           * Hover tooltip showing which
-           * collaboration(s) this edge
-           * represents.
-           */
-          linkLabel={(link) =>
-            getLinkTooltipHtml(
-              link as GraphLink
-            )
-          }
-
-          /**
-           * Draw the collaboration title
-           * along the edge itself once
-           * zoomed in enough to read it.
-           */
-          linkCanvasObjectMode={() => "after"}
-
-          linkCanvasObject={(
-            link,
-            ctx,
-            globalScale
-          ) => {
-            if (globalScale < 2.2) {
-              return;
-            }
-
-            const source =
-              link.source as GraphNode;
-            const target =
-              link.target as GraphNode;
-
-            if (
-              typeof source !== "object" ||
-              typeof target !== "object" ||
-              source.x === undefined ||
-              source.y === undefined ||
-              target.x === undefined ||
-              target.y === undefined
-            ) {
-              return;
-            }
-
-            const label = getLinkTitleLabel(
-              link as GraphLink
-            );
-
-            if (!label) {
-              return;
-            }
-
-            const midX =
-              (source.x + target.x) / 2;
-
-            const midY =
-              (source.y + target.y) / 2;
-
-            const fontSize = Math.max(
-              8,
-              11 / globalScale
-            );
-
-            ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-
-            // Keep long titles from
-            // overwhelming the canvas.
-            const maxChars = 42;
-
-            const displayLabel =
-              label.length > maxChars
-                ? `${label.slice(
-                    0,
-                    maxChars - 1
-                  )}…`
-                : label;
-
-            const textWidth = ctx.measureText(
-              displayLabel
-            ).width;
-
-            const padding = 2 / globalScale;
-
-            // Background so the title stays
-            // readable over links and nodes.
-            ctx.fillStyle =
-              "rgba(255, 255, 255, 0.85)";
-
-            ctx.fillRect(
-              midX - textWidth / 2 - padding,
-              midY - fontSize / 2 - padding,
-              textWidth + padding * 2,
-              fontSize + padding * 2
-            );
-
-            ctx.fillStyle = "#475569";
-
-            ctx.fillText(
-              displayLabel,
-              midX,
-              midY
-            );
-          }}
-
-          d3VelocityDecay={0.22}
-          d3AlphaDecay={0.025}
-
-          cooldownTicks={180}
-          warmupTicks={40}
-
-          onNodeClick={(node) => {
-            // Find the center person's normalized node
-            const centerNode = normalizedGraphData.nodes.find(
-              (n) => n.name.trim().toLowerCase() === centerPerson.trim().toLowerCase()
-            );
-
-            let sharedWorks: any[] = [];
-            
-            if (centerNode) {
-              // Locate all links directly connecting the center person and the clicked node
-              const connectingLinks = normalizedGraphData.links.filter((l) => {
-                const sourceId = typeof l.source === "string" ? l.source : (l.source as GraphNode).id;
-                const targetId = typeof l.target === "string" ? l.target : (l.target as GraphNode).id;
-
-                return (sourceId === centerNode.id && targetId === node.id) ||
-                       (sourceId === node.id && targetId === centerNode.id);
-              });
-
-              // Flatten the works arrays from all connecting links
-              sharedWorks = connectingLinks.flatMap((l) => l.works || []);
-            }
-
-            onNodeSelect?.(node, sharedWorks);
-          }}
-
-          onEngineStop={() => {
-            fgRef.current?.zoomToFit(
-              500,
-              70
-            );
-          }}
-
-          /**
-           * Only show labels when sufficiently
-           * zoomed in.
-           */
-          nodeCanvasObjectMode={() =>
-            "after"
-          }
-
-          nodeCanvasObject={(
-            node,
-            ctx,
-            globalScale
-          ) => {
-            if (globalScale < 1.15) {
-              return;
-            }
-
-            const label = node.name;
-
-            const fontSize = Math.max(
-              10,
-              13 / globalScale
-            );
-
-            ctx.font = `bold ${fontSize}px Sans-Serif`;
-
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-
-            const nodeRadius =
-              Math.sqrt(
-                Math.max(
-                  0,
-                  node.val ?? 1
-                )
-              ) * 5;
-
-            const x = node.x ?? 0;
-            const y = node.y ?? 0;
-
-            const yPos =
-              y +
-              nodeRadius +
-              4 / globalScale;
-
-            // White outline.
-            ctx.lineWidth =
-              3 / globalScale;
-
-            ctx.strokeStyle =
-              "rgba(255,255,255,0.9)";
-
-            ctx.strokeText(
-              label,
-              x,
-              yPos
-            );
-
-            // Label.
-            ctx.fillStyle = "#374151";
-
-            ctx.fillText(
-              label,
-              x,
-              yPos
-            );
-          }}
-        />
-      )}
-
-      {/* Network depth controls */}
-      <div className="absolute left-6 top-6 z-10 rounded-xl border border-gray-200 bg-white/95 p-4 shadow-md backdrop-blur">
-        <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
+      {/* Depth controls */}
+      <div className="absolute left-4 top-4 z-10 flex flex-col items-center gap-2 rounded-lg bg-white/90 p-2 shadow">
+        
+        {/* Row 1 */}
+        <div className="text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
           Network Depth
         </div>
 
-        <div className="flex gap-2">
-          {[1, 2, 3].map((depth) => (
+        {/* Row 2 */}
+        <div className="flex justify-center gap-2">
+          {[1, 2, 3].map((value) => (
             <button
-              key={depth}
+              key={value}
               type="button"
-              onClick={() =>
-                setMaxDepth(depth)
-              }
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${maxDepth === depth
-                  ? "bg-gray-900 text-white"
+              onClick={() => setDepth(value)}
+              className={`rounded px-3 py-1 text-sm font-medium transition ${
+                depth === value
+                  ? "bg-black text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+              }`}
             >
-              {depth}
+              {value}
             </button>
           ))}
         </div>
 
-        <div className="mt-3 text-xs text-gray-400">
+        {/* Row 3 */}
+        <div className="text-center text-xs text-gray-400">
           {visibleGraph.nodes.length} people
           {" · "}
-          {visibleGraph.links.length}{" "}
-          connections
+          {visibleGraph.links.length} connections
         </div>
-      </div>
 
-      {/* Instructions */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-gray-200 bg-white/90 px-4 py-2 text-xs text-gray-500 shadow-sm backdrop-blur">
-        Click a node for details · Scroll to
-        zoom
-      </div>
+      </div>      
+
+      <ForceGraph2D
+        ref={graphRef}
+        graphData={{
+  nodes: [...visibleGraph.nodes],
+  links: [...visibleGraph.links],
+}}
+
+        nodeId="id"
+
+        nodeLabel={(node) => node.name}
+
+        nodeColor={(node: GraphNode) =>
+          node.color ??
+          (node.teamMember
+            ? "#2563eb"
+            : "#94a3b8")
+        }
+
+        nodeVal={(node: GraphNode) =>
+          node.val ?? 4
+        }
+
+        linkWidth={(link: GraphLink) =>
+          Math.max(1, link.value ?? 1)
+        }
+
+        linkLabel={(link: GraphLink) => {
+          const works =
+            link.works ?? [];
+
+          if (!works.length) {
+            return "";
+          }
+
+          return works
+            .map((work) => {
+              const year = work.year
+                ? ` (${work.year})`
+                : "";
+
+              return `${
+                work.title ??
+                "Untitled"
+              }${year}`;
+            })
+            .join("\n");
+        }}
+
+        onNodeClick={handleNodeClick}
+
+        cooldownTicks={100}
+
+        d3AlphaDecay={0.02}
+
+        d3VelocityDecay={0.3}
+
+        d3Force="charge"
+
+        d3ForceCharge={(force: any) => {
+          force.strength(-180);
+        }}
+
+        d3ForceLink={(force: any) => {
+          force.distance(80);
+        }}
+
+        d3ForceCenter={(force: any) => {
+          force.strength(0.05);
+        }}
+
+        nodeCanvasObject={(
+          node: GraphNode,
+          ctx: CanvasRenderingContext2D,
+          globalScale: number
+        ) => {
+          const radius =
+            Math.sqrt(
+              node.val ?? 4
+            ) * 2;
+
+          const x = node.x ?? 0;
+          const y = node.y ?? 0;
+
+          ctx.beginPath();
+
+          ctx.arc(
+            x,
+            y,
+            radius,
+            0,
+            2 * Math.PI,
+            false
+          );
+
+          ctx.fillStyle =
+            node.color ??
+            (node.teamMember
+              ? "#2563eb"
+              : "#94a3b8");
+
+          ctx.fill();
+
+          /**
+           * Labels only when sufficiently zoomed in.
+           */
+          if (globalScale >= 0.8) {
+            const fontSize =
+              12 / globalScale;
+
+            ctx.font = `${fontSize}px Sans-Serif`;
+
+            ctx.textAlign =
+              "center";
+
+            ctx.textBaseline =
+              "top";
+
+            ctx.fillStyle =
+              "#111827";
+
+            ctx.fillText(
+              node.name,
+              x,
+              y + radius + 2
+            );
+          }
+        }}
+
+        linkCanvasObjectMode={() =>
+          "after"
+        }
+
+        linkCanvasObject={(
+          link: GraphLink,
+          ctx: CanvasRenderingContext2D,
+          globalScale: number
+        ) => {
+          if (globalScale < 1.2) {
+            return;
+          }
+
+          /**
+           * ForceGraph converts source/target
+           * strings into GraphNode objects while
+           * rendering.
+           */
+          const source =
+            typeof link.source === "string"
+              ? undefined
+              : link.source;
+
+          const target =
+            typeof link.target === "string"
+              ? undefined
+              : link.target;
+
+          if (!source || !target) {
+            return;
+          }
+
+          if (
+            source.x == null ||
+            source.y == null ||
+            target.x == null ||
+            target.y == null
+          ) {
+            return;
+          }
+
+          const works =
+            link.works ?? [];
+
+          if (!works.length) {
+            return;
+          }
+
+          
+        }}
+      />
     </div>
   );
 }
