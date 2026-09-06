@@ -7,7 +7,7 @@ import generatedGraphData from "../data/network.json";
 const ForceGraph2D = dynamic(
   () => import("react-force-graph-2d"),
   { ssr: false }
-);
+) as any;
 
 export type GraphNode = {
   id: string;
