@@ -47,7 +47,7 @@ export default function PublicationList({
   // We now use works[].owner instead of links[].works.
   // This means solo publications are included too.
   // ----------------------------------------------------------
-  const memberWorks: Work[] = activeMember
+  const memberWorks: Work[] = activeMember?.orcid
     ? (networkData.works || []).filter(
         (work: Work) =>
           work.owner?.orcid?.toLowerCase() ===
