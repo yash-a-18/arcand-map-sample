@@ -529,7 +529,7 @@ export default function CollaborationMap({
 
         nodeId="id"
 
-        nodeLabel={(node) => node.name}
+        nodeLabel={(node: GraphNode) => node.name}
 
         nodeColor={(node: GraphNode) =>
           node.color ??
