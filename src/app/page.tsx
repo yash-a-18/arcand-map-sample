@@ -30,25 +30,25 @@ export default function ProfilePage() {
       </header>
 
       <div className="mx-auto p-6 grid grid-cols-1 md:grid-cols-4 gap-8 mt-6">
-        
+
         {/* Left Sidebar: Team Directory */}
         <div className="col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col h-fit transition-all duration-300">
-            <div className="space-y-6 animate-fade-in">
-              <div className="w-48 h-48 bg-gray-100 rounded-full mx-auto flex items-center justify-center border-4 border-(--arcand-primary) overflow-hidden">
-                <img
-                  src={activeProfile.src}
-                  alt={activeProfile.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="text-center md:text-left">
-                <h2 className="text-3xl font-bold text-(--arcand-primary)">{activeProfile.name}</h2>
-                <p className="text-lg font-medium text-gray-700 mt-2">{activeProfile.title}</p>
-                <p className="text-sm text-gray-600 mt-2 italic border-l-4 border-(--arcand-accent) pl-3">
-                  Dr. Gilles Arcand Centre for Health Equity
-                </p>
-              </div>
+          <div className="space-y-6 animate-fade-in">
+            <div className="w-48 h-48 bg-gray-100 rounded-full mx-auto flex items-center justify-center border-4 border-(--arcand-primary) overflow-hidden">
+              <img
+                src={activeProfile.src}
+                alt={activeProfile.name}
+                className="w-full h-full object-cover"
+              />
             </div>
+            <div className="text-center md:text-left">
+              <h2 className="text-3xl font-bold text-(--arcand-primary)">{activeProfile.name}</h2>
+              <p className="text-lg font-medium text-gray-700 mt-2">{activeProfile.title}</p>
+              <p className="text-sm text-gray-600 mt-2 italic border-l-4 border-(--arcand-accent) pl-3">
+                Dr. Gilles Arcand Centre for Health Equity
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Center/Right Content Area */}
@@ -61,9 +61,8 @@ export default function ProfilePage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-2 transition ${
-                    activeTab === tab ? "text-(--arcand-primary) border-b-4 border-(--arcand-accent)" : "text-gray-400 hover:text-gray-700"
-                  }`}
+                  className={`pb-2 transition ${activeTab === tab ? "text-(--arcand-primary) border-b-4 border-(--arcand-accent)" : "text-gray-400 hover:text-gray-700"
+                    }`}
                 >
                   {tab}
                 </button>
@@ -73,15 +72,15 @@ export default function ProfilePage() {
             <div className="min-h-[500px]">
               {activeTab === "NETWORK" && (
                 <div className="h-[600px] border border-gray-200 rounded-xl shadow-sm relative">
-                  <CollaborationMap 
-                  centerPerson={activeProfile.name}
-                  onNodeSelect={(node, works) => {
+                  <CollaborationMap
+                    centerPerson={activeProfile.name}
+                    onNodeSelect={(node, works) => {
                       setSelectedNode(node);
                       setSharedWorks(works || []);
                     }} />
                 </div>
               )}
-              
+
               {activeTab === "PUBLICATIONS" && (
                 <PublicationList activeMemberName={activeProfile.id} />
               )}
@@ -94,7 +93,7 @@ export default function ProfilePage() {
                 <FundingList activeMemberName={activeProfile.name} />
               )}
             </div>
-            
+
           </div>
         </div>
 
@@ -119,7 +118,7 @@ export default function ProfilePage() {
                 <h3 className="text-sm font-bold tracking-wider text-gray-900 uppercase mb-3">
                   Shared Works
                 </h3>
-                
+
                 {sharedWorks.length > 0 ? (
                   <ul className="space-y-3">
                     {sharedWorks.map((work, idx) => (

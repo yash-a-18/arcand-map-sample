@@ -137,22 +137,23 @@ export default function CollaborationMap({
 }: MapProps) {
   console.log("CollaborationMap rendered");
   useEffect(() => {
-  console.log("🟢 MAP MOUNTED", centerPerson);
+    console.log("🟢 MAP MOUNTED", centerPerson);
 
-  return () => {
-    console.log("🔴 MAP UNMOUNTED", centerPerson);
-  };
-}, []);
+    return () => {
+      console.log("🔴 MAP UNMOUNTED", centerPerson);
+    };
+  }, []);
   const graphRef = useRef<any>(null);
   useEffect(() => {
-  setTimeout(() => {
-    const internalNodes = graphRef.current?.graphData?.().nodes ?? [];
+    setTimeout(() => {
+      const internalNodes = graphRef.current?.graphData?.().nodes ?? [];
 
-    console.log("INTERNAL NODE COUNT:", internalNodes.length);
-  }, 1000);
-}, []);
+      console.log("INTERNAL NODE COUNT:", internalNodes.length);
+    }, 1000);
+  }, []);
 
   const [depth, setDepth] = useState(initialDepth);
+  const [minCollaborations, setMinCollaborations] = useState(1);
 
   /**
    * ------------------------------------------------------------
@@ -209,6 +210,12 @@ export default function CollaborationMap({
     const adjacency = new Map<string, Set<string>>();
 
     for (const link of graphData.links) {
+      // Only allow relationships that meet
+      // the minimum collaboration threshold.
+      if ((link.value ?? 1) < minCollaborations) {
+        continue;
+      }
+
       const source = getEndpointId(link.source);
       const target = getEndpointId(link.target);
 
@@ -273,18 +280,31 @@ export default function CollaborationMap({
       distances.keys()
     );
     console.log("DEPTH:", depth);
-console.log("ACTIVE PERSON:", activePerson?.name);
-console.log("VISIBLE IDS:", visibleIds.size);
-console.log(
-  "DISTANCES:",
-  Array.from(distances.entries()).reduce(
-    (acc, [, d]) => {
-      acc[d] = (acc[d] || 0) + 1;
-      return acc;
-    },
-    {} as Record<number, number>
-  )
-);
+    console.log("ACTIVE PERSON:", activePerson?.name);
+    console.log("VISIBLE IDS:", visibleIds.size);
+    console.log(
+      "DISTANCES:",
+      Array.from(distances.entries()).reduce(
+        (acc, [, d]) => {
+          acc[d] = (acc[d] || 0) + 1;
+          return acc;
+        },
+        {} as Record<number, number>
+      )
+    );
+
+    const filteredLinks = graphData.links.filter((link) => {
+      const sourceId = getEndpointId(link.source);
+      const targetId = getEndpointId(link.target);
+
+      return (
+        sourceId &&
+        targetId &&
+        visibleIds.has(sourceId) &&
+        visibleIds.has(targetId) &&
+        (link.value ?? 1) >= minCollaborations
+      );
+    });
 
     /**
      * ----------------------------------------------------------
@@ -295,8 +315,27 @@ console.log(
      *
      * We simply look up the IDs discovered through links.
      */
+    const connectedIds = new Set<string>();
+
+    for (const link of filteredLinks) {
+      const source = getEndpointId(link.source);
+      const target = getEndpointId(link.target);
+
+      if (source) {
+        connectedIds.add(source);
+      }
+
+      if (target) {
+        connectedIds.add(target);
+      }
+    }
+
+    connectedIds.add(activeId);
+
     const nodes = graphData.nodes.filter(
-      (node) => visibleIds.has(node.id)
+      (node) =>
+        visibleIds.has(node.id) &&
+        connectedIds.has(node.id)
     );
 
     /**
@@ -309,27 +348,7 @@ console.log(
      * We simply select the existing links that belong
      * to the visible graph.
      */
-    const links = graphData.links.filter(
-      (link) => {
-        const source = getEndpointId(
-          link.source
-        );
-
-        const target = getEndpointId(
-          link.target
-        );
-
-        if (!source || !target) {
-          return false;
-        }
-
-        return (
-          visibleIds.has(source) &&
-          visibleIds.has(target)
-        );
-      }
-    );
-
+    const links = filteredLinks;
     return {
       nodes,
       links,
@@ -338,6 +357,7 @@ console.log(
     centerPerson,
     activePerson,
     depth,
+    minCollaborations
   ]);
 
   /**
@@ -435,19 +455,19 @@ console.log(
     );
   };
 
-console.log(
-  "ALL VISIBLE NODES:",
-  visibleGraph.nodes.map((node) => ({
-    id: node.id,
-    name: node.name,
-    orcid: node.orcid,
-  }))
-);
+  console.log(
+    "ALL VISIBLE NODES:",
+    visibleGraph.nodes.map((node) => ({
+      id: node.id,
+      name: node.name,
+      orcid: node.orcid,
+    }))
+  );
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
       {/* Depth controls */}
       <div className="absolute left-4 top-4 z-10 flex flex-col items-center gap-2 rounded-lg bg-white/90 p-2 shadow">
-        
+
         {/* Row 1 */}
         <div className="text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
           Network Depth
@@ -460,32 +480,52 @@ console.log(
               key={value}
               type="button"
               onClick={() => setDepth(value)}
-              className={`rounded px-3 py-1 text-sm font-medium transition ${
-                depth === value
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              className={`rounded px-3 py-1 text-sm font-medium transition ${depth === value
+                ? "bg-black text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
             >
               {value}
             </button>
           ))}
         </div>
 
-        {/* Row 3 */}
+        {/* Minimum collaborations */}
+        <div className="text-center text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Min Collaborations
+        </div>
+
+        <div className="flex justify-center gap-2">
+          {[1, 2, 3, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setMinCollaborations(value)}
+              className={`rounded px-3 py-1 text-sm font-medium transition ${minCollaborations === value
+                ? "bg-black text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              {value}+
+            </button>
+          ))}
+        </div>
+
+        {/* Row 4 */}
         <div className="text-center text-xs text-gray-400">
           {visibleGraph.nodes.length} people
           {" · "}
           {visibleGraph.links.length} connections
         </div>
 
-      </div>      
+      </div>
 
       <ForceGraph2D
         ref={graphRef}
         graphData={{
-  nodes: [...visibleGraph.nodes],
-  links: [...visibleGraph.links],
-}}
+          nodes: [...visibleGraph.nodes],
+          links: [...visibleGraph.links],
+        }}
 
         nodeId="id"
 
@@ -520,10 +560,9 @@ console.log(
                 ? ` (${work.year})`
                 : "";
 
-              return `${
-                work.title ??
+              return `${work.title ??
                 "Untitled"
-              }${year}`;
+                }${year}`;
             })
             .join("\n");
         }}
@@ -656,7 +695,7 @@ console.log(
             return;
           }
 
-          
+
         }}
       />
     </div>
